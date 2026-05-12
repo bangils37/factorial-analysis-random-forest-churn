@@ -226,3 +226,5 @@ results/*
 !results/.gitkeep
 
 project_blueprint/
+reports/
+analysis_*.txt
