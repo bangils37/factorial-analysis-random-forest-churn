@@ -1,5 +1,10 @@
 # Machine Learning Experimental Design: Random Forest Churn Prediction
 
+**Thông tin sinh viên:**
+- **Họ tên:** Nguyễn Bằng Anh
+- **Mã sinh viên:** 22021101
+- **Lớp học phần:** INT3228 1
+- **Môn học:** Phân tích và thiết kế thực nghiệm
 ## Overview
 This project aims to evaluate the influence of training factors (specifically **K-fold** and **max_depth**) on the performance of the **Random Forest** algorithm in predicting customer churn.
 
