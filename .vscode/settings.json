@@ -1,0 +1,51 @@
+{
+    "latex-workshop.latex.tools": [
+        {
+            "name": "latexmk",
+            "command": "C:/Users/Windows/AppData/Roaming/TinyTeX/bin/windows/latexmk.exe",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-outdir=D:/ChurnReport_LaTeX",
+                "D:/ChurnReport_LaTeX/main.tex"
+            ],
+            "env": {
+                "PATH": "C:/Users/Windows/AppData/Roaming/TinyTeX/bin/windows;%PATH%"
+            }
+        },
+        {
+            "name": "pdflatex",
+            "command": "C:/Users/Windows/AppData/Roaming/TinyTeX/bin/windows/pdflatex.exe",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "D:/ChurnReport_LaTeX/main.tex"
+            ],
+            "env": {
+                "PATH": "C:/Users/Windows/AppData/Roaming/TinyTeX/bin/windows;%PATH%"
+            }
+        },
+        {
+            "name": "bibtex",
+            "command": "C:/Users/Windows/AppData/Roaming/TinyTeX/bin/windows/bibtex.exe",
+            "args": [
+                "%DOCFILE%"
+            ],
+            "env": {
+                "PATH": "C:/Users/Windows/AppData/Roaming/TinyTeX/bin/windows;%PATH%"
+            }
+        }
+    ],
+    "latex-workshop.latex.recipes": [
+        {
+            "name": "latexmk 🔃",
+            "tools": [
+                "latexmk"
+            ]
+        }
+    ],
+    "latex-workshop.view.pdf.viewer": "tab"
+}
