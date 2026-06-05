@@ -233,3 +233,78 @@ def check_data_leakage(df: pd.DataFrame, target_col: str, threshold: float = 0.9
     
     leaky_features = correlations[correlations >= threshold].index.tolist()
     return leaky_features
+
+
+# ---------------------------------------------------------------------------
+# Feature Importance Analysis
+# ---------------------------------------------------------------------------
+
+def compute_feature_importance(model, feature_names: list[str]) -> pd.Series:
+    """Compute and return the Gini feature importances from a trained RF model.
+
+    Parameters
+    ----------
+    model : RandomForestClassifier
+        A trained Random Forest model.
+    feature_names : list of str
+        The names of the features used during model training.
+
+    Returns
+    -------
+    pd.Series
+        Series with feature names as index and Gini importance as values,
+        sorted in descending order.
+    """
+    importances = model.feature_importances_
+    return pd.Series(importances, index=feature_names).sort_values(ascending=False)
+
+
+def plot_feature_importance(
+    importances: pd.Series,
+    *,
+    save_path: Optional[str | Path] = None,
+    title: str = "Feature Importance",
+    figsize: tuple[int, int] = (10, 6),
+) -> plt.Figure:
+    """Plot and save a styled horizontal bar chart of feature importances.
+
+    Parameters
+    ----------
+    importances : pd.Series
+        Feature importances as a Series, sorted or unsorted.
+    save_path : str | Path | None
+        Where to save the plot (PNG). If None, defaults to `plots/feature_importance.png`.
+    title : str
+        The title of the plot.
+    figsize : tuple of int
+        The size of the figure.
+
+    Returns
+    -------
+    plt.Figure
+        The Matplotlib figure object.
+    """
+    # Sort in ascending order so that the highest importance is at the top of the horizontal bar chart
+    sorted_imp = importances.sort_values(ascending=True)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    sorted_imp.plot(kind="barh", ax=ax, color="#4F81BD", edgecolor="#375D81", alpha=0.9)
+    
+    ax.set_title(title, fontsize=14, fontweight="bold", pad=16)
+    ax.set_xlabel("Gini Importance Score", fontsize=12, labelpad=8)
+    ax.set_ylabel("Features", fontsize=12, labelpad=8)
+    ax.grid(axis="x", linestyle="--", alpha=0.6)
+    
+    fig.tight_layout()
+
+    # Resolve save path
+    out_path = (
+        Path(save_path)
+        if save_path is not None
+        else PLOTS_DIR / "feature_importance.png"
+    )
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+
+    return fig
+

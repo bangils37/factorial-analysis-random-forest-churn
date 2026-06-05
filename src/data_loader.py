@@ -62,6 +62,12 @@ def load_data(
     # --- encode binary yes/no columns (everything except target) ---
     # Note: pandas 2.x may infer string columns as StringDtype (dtype.name == 'str')
     # rather than classic 'object', so we check for both.
+    # WARNING: LabelEncoder is designed for target labels, not features.
+    # Here, after dropping 'state' and 'area_code', the only remaining categorical 
+    # columns are binary (international_plan and voice_mail_plan). Therefore, LabelEncoder
+    # safely acts as a binary mapper. However, if nominal variables with cardinality > 2 
+    # are retained, using LabelEncoder will impose an artificial ordering. 
+    # In a production pipeline, OrdinalEncoder or OneHotEncoder should be preferred.
     binary_cols = [
         c for c in df.columns
         if c != TARGET_COL and (

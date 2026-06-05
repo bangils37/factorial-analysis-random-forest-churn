@@ -49,6 +49,9 @@ from src.model import build_rf
 from src.utils import runtime_tracker
 
 
+from src.feature_analysis import remove_highly_correlated_features
+
+
 # ---------------------------------------------------------------------------
 # Main experiment
 # ---------------------------------------------------------------------------
@@ -71,48 +74,50 @@ def run_crfd() -> pd.DataFrame:
     print("=" * 60)
 
     X, y = load_data()
-    print(f"\nDataset loaded: {X.shape[0]} rows × {X.shape[1]} features")
+    X, dropped_cols = remove_highly_correlated_features(X, threshold=0.95)
+    print(f"\nHighly correlated columns dropped: {dropped_cols}")
+    print(f"Dataset loaded: {X.shape[0]} rows × {X.shape[1]} features (after dropping)")
     print(f"Class distribution:\n{y.value_counts().to_string()}\n")
 
     records: list[dict] = []
 
     with runtime_tracker("CRFD Full Execution"):
         for k in K_VALUES:
-        for max_depth in MAX_DEPTH_VALUES:
-            depth_label = str(max_depth) if max_depth is not None else "None"
-            print(f"Running k={k}, max_depth={depth_label} ...")
+            for max_depth in MAX_DEPTH_VALUES:
+                depth_label = str(max_depth) if max_depth is not None else "None"
+                print(f"Running k={k}, max_depth={depth_label} ...")
 
-            cv = RepeatedStratifiedKFold(
-                n_splits=k,
-                n_repeats=REPEATS,
-                random_state=RANDOM_SEED,
-            )
-
-            for split_no, (train_idx, val_idx) in enumerate(cv.split(X, y)):
-                repeat_id = (split_no // k) + 1      # 1-indexed repetition
-                fold_id = (split_no % k) + 1         # 1-indexed fold
-
-                X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
-                y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
-
-                model = build_rf(max_depth=max_depth)
-                model.fit(X_train, y_train)
-                y_pred = model.predict(X_val)
-
-                score = f1_score(y_val, y_pred, pos_label=F1_POS_LABEL)
-
-                records.append(
-                    {
-                        "repeat_id": repeat_id,
-                        "fold_id": fold_id,
-                        "k": k,
-                        "max_depth": depth_label,   # 'None' as string for CSV readability
-                        "f1_score": round(score, 6),
-                    }
+                cv = RepeatedStratifiedKFold(
+                    n_splits=k,
+                    n_repeats=REPEATS,
+                    random_state=RANDOM_SEED,
                 )
 
-            total_splits = REPEATS * k
-            print(f"  -> {total_splits} splits completed.")
+                for split_no, (train_idx, val_idx) in enumerate(cv.split(X, y)):
+                    repeat_id = (split_no // k) + 1      # 1-indexed repetition
+                    fold_id = (split_no % k) + 1         # 1-indexed fold
+
+                    X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
+                    y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+
+                    model = build_rf(max_depth=max_depth)
+                    model.fit(X_train, y_train)
+                    y_pred = model.predict(X_val)
+
+                    score = f1_score(y_val, y_pred, pos_label=F1_POS_LABEL)
+
+                    records.append(
+                        {
+                            "repeat_id": repeat_id,
+                            "fold_id": fold_id,
+                            "k": k,
+                            "max_depth": depth_label,   # 'None' as string for CSV readability
+                            "f1_score": round(score, 6),
+                        }
+                    )
+
+                total_splits = REPEATS * k
+                print(f"  -> {total_splits} splits completed.")
 
     results_df = pd.DataFrame(records)
     return results_df

@@ -11,8 +11,9 @@ from scipy import stats
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
+from statsmodels.stats.oneway import anova_oneway
 
-from src.config import RESULTS_DIR, PLOTS_DIR
+from src.config import RESULTS_DIR, PLOTS_DIR, PROJECT_ROOT
 
 sns.set_theme(style="whitegrid")
 plt.rcParams["figure.dpi"] = 150
@@ -26,11 +27,18 @@ def run_crd_analysis():
     print("ANALYSIS: CRD (One-way ANOVA on k)")
     print("="*50)
 
-    # 1. Confidence Intervals (Numeric)
-    print("\nConfidence Intervals (Mean ± Std):")
+    # 1. 95% Confidence Intervals of the Mean (t-distribution)
+    print("\n95% Confidence Intervals of the Mean:")
     ci_stats = df.groupby('k')['f1_score'].agg(['mean', 'std', 'count']).round(4)
     for k, row in ci_stats.iterrows():
-        print(f"  k={k:2d}: {row['mean']:.4f} ± {row['std']:.4f}")
+        mean, std, n = row['mean'], row['std'], int(row['count'])
+        if n > 1 and std > 0:
+            h = stats.t.ppf(0.975, df=n-1) * (std / np.sqrt(n))
+            ci_lower = mean - h
+            ci_upper = mean + h
+        else:
+            ci_lower, ci_upper = mean, mean
+        print(f"  k={k:2d}: Mean={mean:.4f}, Std={std:.4f}, N={n} | 95% CI = [{ci_lower:.4f}, {ci_upper:.4f}]")
 
     # 2. Assumption Checks
     print("\nAssumption Checks:")
@@ -59,6 +67,13 @@ def run_crd_analysis():
     
     print("\nOne-way ANOVA Table (with Effect Size):")
     print(anova_table)
+
+    # Welch's ANOVA (Robust check since Levene test is rejected and sizes are unbalanced)
+    welch_res = anova_oneway(df['f1_score'], df['k'], use_var='unequal')
+    print("\nWelch's ANOVA (Robust to Heteroscedasticity & Unbalanced Groups):")
+    print(f"  F-statistic = {welch_res.statistic:.4f}")
+    print(f"  p-value     = {welch_res.pvalue:.4f}")
+    print(f"  df (num, denom) = ({welch_res.df_num:.1f}, {welch_res.df_denom:.2f})")
 
     # 4. Tukey HSD & Tukey Plot
     tukey = pairwise_tukeyhsd(endog=df['f1_score'], groups=df['k'], alpha=0.05)
@@ -90,11 +105,18 @@ def run_crfd_analysis():
     print("ANALYSIS: CRFD (Two-way ANOVA: k * max_depth)")
     print("="*50)
 
-    # 1. Confidence Intervals (Numeric)
-    print("\nConfidence Intervals (Mean ± Std):")
-    ci_stats = df.groupby(['k', 'max_depth'])['f1_score'].agg(['mean', 'std']).round(4)
+    # 1. 95% Confidence Intervals of the Mean (t-distribution)
+    print("\n95% Confidence Intervals of the Mean:")
+    ci_stats = df.groupby(['k', 'max_depth'])['f1_score'].agg(['mean', 'std', 'count']).round(4)
     for index, row in ci_stats.iterrows():
-        print(f"  k={index[0]:2d}, max_depth={index[1]:<4}: {row['mean']:.4f} ± {row['std']:.4f}")
+        mean, std, n = row['mean'], row['std'], int(row['count'])
+        if n > 1 and std > 0:
+            h = stats.t.ppf(0.975, df=n-1) * (std / np.sqrt(n))
+            ci_lower = mean - h
+            ci_upper = mean + h
+        else:
+            ci_lower, ci_upper = mean, mean
+        print(f"  k={index[0]:2d}, max_depth={index[1]:<4}: Mean={mean:.4f}, Std={std:.4f}, N={n} | 95% CI = [{ci_lower:.4f}, {ci_upper:.4f}]")
 
     # 2. Assumption Check
     model = ols('f1_score ~ C(k) * C(max_depth)', data=df).fit()
@@ -132,4 +154,17 @@ if __name__ == "__main__":
         finally:
             sys.stdout = original_stdout
     
-    print("Phân tích hoàn tất. Kết quả được lưu tại analysis_summary.txt")
+    print("Analysis completed. Results saved in analysis_summary.txt")
+    
+    # Automatically copy plots to LaTeX images directory
+    import shutil
+    latex_img_dir = PROJECT_ROOT / "reports" / "latex" / "images"
+    if latex_img_dir.exists():
+        copied_files = []
+        for plot_name in ["crd_boxplot.png", "tukey_plot.png", "interaction_plot.png"]:
+            src = PLOTS_DIR / plot_name
+            if src.exists():
+                shutil.copy(src, latex_img_dir / plot_name)
+                copied_files.append(plot_name)
+        if copied_files:
+            print(f"Automatically copied plots to LaTeX images: {copied_files}")
